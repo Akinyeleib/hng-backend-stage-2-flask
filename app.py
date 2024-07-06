@@ -2,13 +2,8 @@ from flask import request, make_response
 from .models import User, Organisation
 from . import app, db, bcrypt, secret
 from uuid import uuid4
-from datetime import datetime
+from functools import wraps
 import jwt
-
-
-@app.route("/", methods=['GET'])
-def home():
-    return "Welcome to hng-flask-stage-2-app"
 
 
 @app.route('/auth/register', methods=['POST'])
@@ -65,7 +60,6 @@ def register():
     db.session.add(user)
     db.session.commit()
 
-    # token = generate_token(userId=user.userId)
     token = generate_token(user=user)
     return make_response({
         "status": "success",
@@ -77,7 +71,7 @@ def register():
     }, 201)
 
 
-@app.route('/auth/login')
+@app.route('/auth/login', methods=['POST'])
 def login():
     data = request.json
 
@@ -95,10 +89,45 @@ def login():
     
     if not bcrypt.check_password_hash(user.password, password):
         return make_response({"status": "bad request", "message": "Authentication failed"}, 401)
-    
+
     token = generate_token(user=user)
-    return make_response()
+    return make_response({
+        "status": "success",
+        "message": "Login successful",
+        "data": {
+            "accessToken": token,
+            "user": user.get_user()
+        }
+    }, 200)
+
+
+def check_token_middleware(func):
+    @wraps(func)
+    def decorated(*args, **kwargs):
+        token = request.headers.get('Authorization')
+        if token == None:
+            return  make_response({"status": "bad request", "message": "Missing Token"}, 401)
+        if not token.startswith('Bearer '):
+            return  make_response({"status": "bad request", "message": "Invalid Token"}, 401)
+        token = token[7::]
         
+        try:
+            data = jwt.decode(token, secret, algorithms=['HS256'])
+            userId = data['id']
+            user = User.query.filter_by(userId=userId)
+            if user == None:
+                return  make_response({"status": "bad request", "message": "Invalid Token"}, 401)
+            return func(user, *args, **kwargs)
+        except:
+            return  make_response({"status": "bad request", "message": "Invalid Token"}, 401)
+    return decorated
+
+
+@app.route("/", methods=['GET'])
+@check_token_middleware
+def home(user):
+    return "Welcome to hng-flask-stage-2-app"
+
 
 def add_error_to_list(list, field, message):
     error = {"field": field, "message": message}
@@ -114,12 +143,9 @@ def generate_token(user):
     payload = {  
         "id": user.userId,  
         "name": f"{user.firstName} {user.lastName}"
-        # "iat": 1516239022
     }
     
     token = jwt.encode(payload, secret, algorithm='HS256', headers=header)
-    print(type(token))
-    print(f"{token=}")
     return token
 
 
