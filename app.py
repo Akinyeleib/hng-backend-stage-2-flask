@@ -165,6 +165,22 @@ def get_organisations(user):
 }, 200)
 
 
+@app.route("/api/organisations/<orgId>", methods=['GET'])
+@check_token_middleware
+def get_organisation(user, orgId):
+    organisations = user.get_user_organisations()
+    org = Organisation.query.filter_by(orgId=orgId).first()
+
+    if org.get_organisations_details() in organisations:
+        return make_response({
+            "status": "success",
+            "message": "User Organisations Details Retrieved Successfully",
+            "data": org.get_organisations_details()
+        }, 200)
+    else:
+        return make_response({"status": "Not Found", "message": f"organisation with id: {orgId} not Found!"}, 404)
+
+
 def add_error_to_list(list, field, message):
     error = {"field": field, "message": message}
     list.append(error)
