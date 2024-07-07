@@ -127,14 +127,14 @@ def check_token_middleware(func):
             if user == None:
                 return  make_response({"status": "bad request", "message": "User Details not Found!"}, 404)
             return func(user, *args, **kwargs)
-        except:
+        except Exception as e:
             return  make_response({"status": "Server Error", "message": "Error generating user record"}, 500)
 
     return decorated
 
 
 @app.route("/", methods=['GET'])
-def home(user):
+def home():
     return "Welcome to hng-flask-stage-2-app"
 
 
@@ -179,6 +179,36 @@ def get_organisation(user, orgId):
         }, 200)
     else:
         return make_response({"status": "Not Found", "message": f"organisation with id: {orgId} not Found!"}, 404)
+
+
+@app.route("/api/organisations", methods=['POST'])
+@check_token_middleware
+def create_organisation(user):
+    data = request.json
+
+    name = data.get('name')
+    description = data.get('description')
+    
+    if not name:
+        return make_response({"status": "Bad Request", "message": "name is a compulsory field"}, 400)
+
+    organisation = Organisation(
+        orgId = generate_uuid(),
+        name = name,
+        description = description
+    )
+    db.session.add(organisation)
+
+    user.organisations.append(organisation)
+    db.session.add(user)
+
+    db.session.commit()
+
+    return make_response({
+        "status": "success",
+        "message": "User Organisations Details Retrieved Successfully",
+        "data": organisation.get_organisations_details()
+    }, 201)
 
 
 def add_error_to_list(list, field, message):
