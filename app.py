@@ -64,7 +64,7 @@ def register():
 
     user.organisations.append(organisation)
     db.session.add(user)
-    
+
     db.session.commit()
 
     token = generate_token(user=user)
@@ -103,7 +103,8 @@ def login():
         "message": "Login successful",
         "data": {
             "accessToken": token,
-            "user": user.get_user_details()
+            "user": user.get_user_details(),
+            "orgs": user.get_user_organisations()
         }
     }, 200)
 

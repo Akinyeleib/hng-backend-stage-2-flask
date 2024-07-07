@@ -26,6 +26,10 @@ class User(db.Model):
             "email": self.email,
             "phone": self.phone,
         }
+    
+
+    def get_user_organisations(self):
+        return [org.get_organisations_details() for org in self.organisations]
 
 
     def __repr__(self) -> str:
@@ -38,4 +42,12 @@ class Organisation(db.Model):
 
     def __repr__(self) -> str:
         return f"<Organisation: {self.name}>"
+    
+
+    def get_organisations_details(self):
+        return {
+            "orgId": self.orgId,
+            "name": self.name,
+            "description": self.description
+        }
 
