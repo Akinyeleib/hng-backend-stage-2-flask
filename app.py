@@ -150,7 +150,7 @@ def user_info(user, id):
         }
     }, 200)
     else:
-        return  make_response({"status": "bad request", "message": "User is not authorised to make this request"}, 403)
+        return  make_response({"status": "bad request", "message": "User is not authorised to make this request"}, 401)
 
 
 @app.route("/api/organisations", methods=['GET'])
