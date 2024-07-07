@@ -211,6 +211,31 @@ def create_organisation(user):
     }, 201)
 
 
+@app.route("/api/organisations/:orgId/users", methods=['POST'])
+def add_user_to_organisation(user, orgId):
+    data = request.json
+
+    userId = data.get('name')
+    if not userId:
+        return make_response({"status": "Bad Request", "message": "name is a compulsory field"}, 400)
+    
+    user = User.query.filter_by(userId=userId).first()        
+    if user == None:
+        return  make_response({"status": "bad request", "message": "User Details not Found!"}, 404)
+
+    organisation = Organisation.query.filter_by(orgId=orgId).first()
+    if organisation == None:
+        return make_response({"status": "Not Found", "message": f"organisation with id: {orgId} not Found!"}, 404)
+
+    organisation.users.append(user)
+    db.session.commit()
+
+    return make_response({
+        "status": "success",
+        "message": "User Added to Organisation Successfully"
+    }, 200)
+
+
 def add_error_to_list(list, field, message):
     error = {"field": field, "message": message}
     list.append(error)
