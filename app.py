@@ -46,10 +46,9 @@ def register():
     # hash password
     # hashed_password = generate_password_hash(password)
     hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
-    id = uuid4()
-
+    
     user = User(
-        userId = str(id),
+        userId = generate_uuid(),
         email = email, 
         firstName = firstName, 
         lastName = lastName, 
@@ -57,7 +56,15 @@ def register():
         phone = phone
     )
 
+    organisation = Organisation(
+        orgId = generate_uuid(),
+        name = f"{firstName}'s Organisation"
+    )
+    db.session.add(organisation)
+
+    user.organisations.append(organisation)
     db.session.add(user)
+    
     db.session.commit()
 
     token = generate_token(user=user)
@@ -66,7 +73,7 @@ def register():
         "message": "Registration Successful",
         "data": {
             "accessToken": token,
-            "user": user.get_user()
+            "user": user.get_user_details()
         }
     }, 201)
 
@@ -96,7 +103,7 @@ def login():
         "message": "Login successful",
         "data": {
             "accessToken": token,
-            "user": user.get_user()
+            "user": user.get_user_details()
         }
     }, 200)
 
@@ -110,23 +117,39 @@ def check_token_middleware(func):
         if not token.startswith('Bearer '):
             return  make_response({"status": "bad request", "message": "Invalid Token"}, 401)
         token = token[7::]
-        
+
         try:
             data = jwt.decode(token, secret, algorithms=['HS256'])
             userId = data['id']
-            user = User.query.filter_by(userId=userId)
+            user = User.query.filter_by(userId=userId).first()
+            
             if user == None:
-                return  make_response({"status": "bad request", "message": "Invalid Token"}, 401)
+                return  make_response({"status": "bad request", "message": "User Details not Found!"}, 404)
             return func(user, *args, **kwargs)
         except:
-            return  make_response({"status": "bad request", "message": "Invalid Token"}, 401)
+            return  make_response({"status": "Server Error", "message": "Error generating user record"}, 500)
+
     return decorated
 
 
 @app.route("/", methods=['GET'])
-@check_token_middleware
 def home(user):
     return "Welcome to hng-flask-stage-2-app"
+
+
+@app.route("/api/users/<id>", methods=['GET'])
+@check_token_middleware
+def user_info(user, id):
+    if user.userId ==  id:
+        return make_response({
+        "status": "success",
+        "message": "User Details retrieved successfully",
+        "data": {
+            "user": user.get_user_details()
+        }
+    }, 200)
+    else:
+        return  make_response({"status": "bad request", "message": "User is not authorised to make this request"}, 403)
 
 
 def add_error_to_list(list, field, message):
@@ -149,6 +172,7 @@ def generate_token(user):
     return token
 
 
-@app.route('/api/users/<id>')
-def get_user_details():
-    pass
+def generate_uuid():
+    id = uuid4()
+    return str(id)
+
