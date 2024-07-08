@@ -1,9 +1,7 @@
 from flask import request, make_response
 from .models import User, Organisation
-from . import app, db, bcrypt, secret
-from uuid import uuid4
-from functools import wraps
-import jwt
+from . import app, db, bcrypt
+from .utils import add_error_to_list, generate_uuid, generate_token, check_token_middleware, hash_password
 
 
 @app.route('/auth/register', methods=['POST'])
@@ -43,9 +41,7 @@ def register():
             422
         )
 
-    # hash password
-    # hashed_password = generate_password_hash(password)
-    hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+    hashed_password = hash_password(password)
     
     user = User(
         userId = generate_uuid(),
@@ -107,30 +103,6 @@ def login():
             "orgs": user.get_user_organisations()
         }
     }, 200)
-
-
-def check_token_middleware(func):
-    @wraps(func)
-    def decorated(*args, **kwargs):
-        token = request.headers.get('Authorization')
-        if token == None:
-            return  make_response({"status": "bad request", "message": "Missing Token"}, 401)
-        if not token.startswith('Bearer '):
-            return  make_response({"status": "bad request", "message": "Invalid Token"}, 401)
-        token = token[7::]
-
-        try:
-            data = jwt.decode(token, secret, algorithms=['HS256'])
-            userId = data['id']
-            user = User.query.filter_by(userId=userId).first()
-            
-            if user == None:
-                return  make_response({"status": "bad request", "message": "User Details not Found!"}, 404)
-            return func(user, *args, **kwargs)
-        except Exception as e:
-            return  make_response({"status": "Server Error", "message": "Error generating user record"}, 500)
-
-    return decorated
 
 
 @app.route("/", methods=['GET'])
@@ -235,28 +207,4 @@ def add_user_to_organisation(user, orgId):
         "message": "User Added to Organisation Successfully"
     }, 200)
 
-
-def add_error_to_list(list, field, message):
-    error = {"field": field, "message": message}
-    list.append(error)
-
-
-def generate_token(user):
-    header = {  
-        "alg": "HS256",  
-        "typ": "JWT"  
-    }  
-    
-    payload = {  
-        "id": user.userId,  
-        "name": f"{user.firstName} {user.lastName}"
-    }
-    
-    token = jwt.encode(payload, secret, algorithm='HS256', headers=header)
-    return token
-
-
-def generate_uuid():
-    id = uuid4()
-    return str(id)
 
