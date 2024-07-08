@@ -11,7 +11,11 @@ db = SQLAlchemy()
 bcrypt = Bcrypt(app) 
 
 
-app.config['SQLALCHEMY_DATABASE_URI'] = env("LOCAL_DB")
+if env("BUILD") == "PROD":
+    app.config['SQLALCHEMY_DATABASE_URI'] = env("DB_URL")
+else:
+    app.config['SQLALCHEMY_DATABASE_URI'] = env("LOCAL_DB")
+
 secret = env("JWT_SECRET")
 
 db.init_app(app)
