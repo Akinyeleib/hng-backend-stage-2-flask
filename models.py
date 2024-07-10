@@ -1,4 +1,4 @@
-from . import db
+from init_app import db
 
 
 user_organisation = db.Table(

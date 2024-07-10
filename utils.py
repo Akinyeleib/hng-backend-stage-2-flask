@@ -2,9 +2,9 @@ from uuid import uuid4
 from functools import wraps
 import jwt
 from datetime import datetime, timedelta
-from . import bcrypt, secret
+from init_app import bcrypt, secret
 from flask import request, make_response
-from .models import User
+from models import User
 
 
 def add_error_to_list(list, field, message):

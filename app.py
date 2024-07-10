@@ -1,7 +1,7 @@
 from flask import request, make_response
-from .models import User, Organisation
-from . import app, db, bcrypt
-from .utils import add_error_to_list, generate_uuid, generate_token, check_token_middleware, hash_password
+from models import User, Organisation
+from init_app import app, db, bcrypt
+from utils import add_error_to_list, generate_uuid, generate_token, check_token_middleware, hash_password
 
 
 @app.route('/auth/register', methods=['POST'])
@@ -105,9 +105,9 @@ def login():
     }, 200)
 
 
-@app.route("/", methods=['GET'])
+@app.route('/', methods=['GET'])
 def home():
-    return "Welcome to hng-flask-stage-2-app"
+    make_response({"status": "success", "message": "Welcome to hng-flask-stage-2-app"}, 200)
 
 
 @app.route("/api/users/<id>", methods=['GET'])
